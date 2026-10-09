@@ -15,7 +15,17 @@ const inside = (x: number, y: number, rect: Rect) =>
 // given position, whether they are related to the element before or
 // the element after the position.
 function findPositionSide(view: EditorView, pos: number, x: number, y: number) {
-  const line = LineView.find((view as any).docView, pos);
+  // The internal docView may be absent or in an inconsistent state when the
+  // double click lands on an unmounted view (e.g. a widget that is still
+  // being built), which makes LineView.find throw. Treat it as "not found"
+  // and fall back to the default side instead of crashing.
+  let line: LineView | null = null;
+  try {
+    const docView = (view as any).docView;
+    line = docView ? LineView.find(docView, pos) : null;
+  } catch {
+    line = null;
+  }
   if (!line) return 1;
   const off = pos - line.posAtStart;
   // Line boundaries point into the line
